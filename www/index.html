@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💰 Planilha de Finanças Pessoais</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+  body { background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  
+  header {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    padding: 20px 30px;
+    border-bottom: 2px solid #334155;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 15px;
+  }
+  header h1 { font-size: 1.5rem; color: #38bdf8; }
+  header .saldo-total { font-size: 1.2rem; }
+  header .saldo-total strong { color: #4ade80; }
+
+  nav {
+    display: flex; gap: 5px; padding: 15px 30px;
+    background: #1e293b; flex-wrap: wrap;
+    border-bottom: 1px solid #334155;
+  }
+  nav button {
+    background: transparent; border: 1px solid #334155;
+    color: #cbd5e1; padding: 10px 18px; border-radius: 8px;
+    cursor: pointer; font-size: 0.9rem; transition: 0.2s;
+  }
+  nav button:hover { background: #334155; }
+  nav button.active { background: #38bdf8; color: #0f172a; font-weight: bold; border-color: #38bdf8; }
+
+  main { padding: 25px 30px; max-width: 1400px; margin: 0 auto; }
+  .aba { display: none; }
+  .aba.ativa { display: block; animation: fade 0.3s; }
+  @keyframes fade { from { opacity: 0; transform: translateY(5px);} to {opacity:1; transform: translateY(0);} }
+
+  /* CARDS */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+  .card {
+    background: #1e293b; padding: 20px; border-radius: 12px;
+    border-left: 4px solid #38bdf8;
+  }
+  .card.verde { border-left-color: #4ade80; }
+  .card.vermelho { border-left-color: #f87171; }
+  .card.amarelo { border-left-color: #facc15; }
+  .card h3 { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card p { font-size: 1.6rem; font-weight: bold; }
+
+  /* FORM */
+  .form-box {
+    background: #1e293b; padding: 20px; border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  .form-box h2 { font-size: 1.1rem; color: #38bdf8; margin-bottom: 15px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+  input, select {
+    background: #0f172a; border: 1px solid #334155;
+    color: #e2e8f0; padding: 10px 12px; border-radius: 8px;
+    font-size: 0.9rem; width: 100%;
+  }
+  input:focus, select:focus { outline: none; border-color: #38bdf8; }
+  button.btn {
+    background: #38bdf8; color: #0f172a; border: none;
+    padding: 10px 20px; border-radius: 8px; cursor: pointer;
+    font-weight: bold; font-size: 0.9rem; transition: 0.2s;
+  }
+  button.btn:hover { background: #0ea5e9; transform: translateY(-1px); }
+  button.btn.excluir { background: #ef4444; color: white; padding: 8px 14px; font-size: 0.85rem; }
+  button.btn.excluir:hover { background: #dc2626; }
+  button.btn.retirar {
+    background: #f59e0b; color: #0f172a;
+    padding: 8px 14px; font-size: 0.85rem;
+  }
+  button.btn.retirar:hover { background: #d97706; }
+
+  /* TABELAS */
+  table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; }
+  th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+  th { background: #0f172a; color: #38bdf8; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
+  tr:hover td { background: #334155; }
+  td.valor { font-weight: bold; }
+  td.valor.pos { color: #4ade80; }
+  td.valor.neg { color: #f87171; }
+  td.cat {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.75rem; background: #334155; color: #cbd5e1;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .chart-box {
+    background: #1e293b; padding: 20px; border-radius: 12px;
+    margin-bottom: 20px;
+  }
+  .chart-box h2 { font-size: 1.1rem; color: #38bdf8; margin-bottom: 15px; }
+
+  /* META */
+  .meta-item {
+    margin-bottom: 20px; padding: 15px;
+    background: #0f172a; border-radius: 10px;
+    border-left: 3px solid #38bdf8;
+  }
+  .meta-item .info { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; flex-wrap: wrap; gap: 8px; }
+  .progresso {
+    height: 22px; background: #1e293b; border-radius: 11px; overflow: hidden;
+    position: relative;
+  }
+  .progresso div {
+    height: 100%; background: linear-gradient(90deg, #38bdf8, #4ade80);
+    transition: width 0.4s; border-radius: 11px;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 8px; font-size: 0.75rem; font-weight: bold; color: #0f172a;
+    min-width: 30px;
+  }
+  .meta-acoes {
+    display: flex; gap: 8px; margin-top: 12px;
+    flex-wrap: wrap; align-items: center;
+  }
+  .meta-acoes input {
+    width: 130px; padding: 8px 10px; font-size: 0.85rem;
+  }
+
+  .vazio { text-align: center; padding: 30px; color: #64748b; font-style: italic; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💰 Minhas Finanças</h1>
+  <div class="saldo-total">Saldo do mês: <strong id="saldoHeader">R$ 0,00</strong></div>
+</header>
+
+<nav>
+  <button class="active" data-aba="dashboard">📊 Dashboard</button>
+  <button data-aba="receitas">💵 Receitas</button>
+  <button data-aba="despesas">💸 Despesas</button>
+  <button data-aba="metas">🎯 Metas</button>
+  <button data-aba="investimentos">📈 Investimentos</button>
+</nav>
+
+<main>
+
+  <!-- ================= DASHBOARD ================= -->
+  <section id="dashboard" class="aba ativa">
+    <div class="cards">
+      <div class="card verde">
+        <h3>💰 Receitas do Mês</h3>
+        <p id="totalReceitas">R$ 0,00</p>
+      </div>
+      <div class="card vermelho">
+        <h3>💸 Despesas do Mês</h3>
+        <p id="totalDespesas">R$ 0,00</p>
+      </div>
+      <div class="card amarelo">
+        <h3>📈 Saldo</h3>
+        <p id="saldoMes">R$ 0,00</p>
+      </div>
+      <div class="card">
+        <h3>🎯 Taxa de Poupança</h3>
+        <p id="taxaPoupanca">0%</p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="chart-box">
+        <h2>Despesas por Categoria</h2>
+        <canvas id="graficoPizza"></canvas>
+      </div>
+      <div class="chart-box">
+        <h2>Receitas vs Despesas (últimos 6 meses)</h2>
+        <canvas id="graficoBarras"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= RECEITAS ================= -->
+  <section id="receitas" class="aba">
+    <div class="form-box">
+      <h2>➕ Nova Receita</h2>
+      <div class="form-grid">
+        <input type="date" id="recData">
+        <input type="text" id="recDesc" placeholder="Descrição">
+        <select id="recCat">
+          <option>Salário</option>
+          <option>Freelance</option>
+          <option>Investimentos</option>
+          <option>Aluguel</option>
+          <option>Vendas</option>
+          <option>Outros</option>
+        </select>
+        <input type="number" id="recValor" placeholder="Valor (R$)" step="0.01">
+        <button class="btn" onclick="addReceita()">Adicionar</button>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th></th></tr>
+      </thead>
+      <tbody id="tabelaReceitas"></tbody>
+    </table>
+  </section>
+
+  <!-- ================= DESPESAS ================= -->
+  <section id="despesas" class="aba">
+    <div class="form-box">
+      <h2>➖ Nova Despesa</h2>
+      <div class="form-grid">
+        <input type="date" id="desData">
+        <input type="text" id="desDesc" placeholder="Descrição">
+        <select id="desCat">
+          <option>Moradia</option>
+          <option>Alimentação</option>
+          <option>Transporte</option>
+          <option>Saúde</option>
+          <option>Educação</option>
+          <option>Lazer</option>
+          <option>Vestuário</option>
+          <option>Dívidas</option>
+          <option>Assinaturas</option>
+          <option>Outros</option>
+        </select>
+        <input type="number" id="desValor" placeholder="Valor (R$)" step="0.01">
+        <button class="btn" onclick="addDespesa()">Adicionar</button>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th></th></tr>
+      </thead>
+      <tbody id="tabelaDespesas"></tbody>
+    </table>
+  </section>
+
+  <!-- ================= METAS ================= -->
+  <section id="metas" class="aba">
+    <div class="form-box">
+      <h2>🎯 Nova Meta</h2>
+      <div class="form-grid">
+        <input type="text" id="metaNome" placeholder="Nome da meta">
+        <input type="number" id="metaAlvo" placeholder="Valor alvo (R$)" step="0.01">
+        <input type="number" id="metaAtual" placeholder="Valor já guardado (R$)" step="0.01">
+        <input type="date" id="metaPrazo">
+        <button class="btn" onclick="addMeta()">Adicionar</button>
+      </div>
+    </div>
+    <div class="form-box">
+      <h2>Progresso das Metas</h2>
+      <div id="listaMetas"></div>
+    </div>
+  </section>
+
+  <!-- ================= INVESTIMENTOS ================= -->
+  <section id="investimentos" class="aba">
+    <div class="form-box">
+      <h2>📈 Novo Investimento</h2>
+      <div class="form-grid">
+        <input type="text" id="invNome" placeholder="Ativo (ex: Tesouro Selic)">
+        <select id="invTipo">
+          <option>Renda Fixa</option>
+          <option>FII</option>
+          <option>Ações</option>
+          <option>Cripto</option>
+          <option>Fundo</option>
+        </select>
+        <input type="number" id="invInvestido" placeholder="Investido (R$)" step="0.01">
+        <input type="number" id="invAtual" placeholder="Valor atual (R$)" step="0.01">
+        <button class="btn" onclick="addInvestimento()">Adicionar</button>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Ativo</th><th>Tipo</th><th>Investido</th><th>Atual</th><th>Rent.</th><th>% Carteira</th><th></th></tr>
+      </thead>
+      <tbody id="tabelaInvestimentos"></tbody>
+    </table>
+    <div class="cards" style="margin-top:20px">
+      <div class="card">
+        <h3>Total Investido</h3>
+        <p id="totalInv">R$ 0,00</p>
+      </div>
+      <div class="card verde">
+        <h3>Valor Atual</h3>
+        <p id="totalAtual">R$ 0,00</p>
+      </div>
+      <div class="card amarelo">
+        <h3>Rentabilidade Total</h3>
+        <p id="rentTotal">0%</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* =========================================================
+   ESTADO (localStorage)
+========================================================= */
+const state = {
+  receitas: JSON.parse(localStorage.getItem('fin_receitas')) || [],
+  despesas: JSON.parse(localStorage.getItem('fin_despesas')) || [],
+  metas: JSON.parse(localStorage.getItem('fin_metas')) || [],
+  investimentos: JSON.parse(localStorage.getItem('fin_investimentos')) || []
+};
+
+function salvar() {
+  localStorage.setItem('fin_receitas', JSON.stringify(state.receitas));
+  localStorage.setItem('fin_despesas', JSON.stringify(state.despesas));
+  localStorage.setItem('fin_metas', JSON.stringify(state.metas));
+  localStorage.setItem('fin_investimentos', JSON.stringify(state.investimentos));
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+const fmt = v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const dataBR = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+const mesAtual = () => new Date().toISOString().slice(0, 7);
+
+/* =========================================================
+   NAVEGAÇÃO
+========================================================= */
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.aba').forEach(a => a.classList.remove('ativa'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.aba).classList.add('ativa');
+  };
+});
+
+/* =========================================================
+   RECEITAS
+========================================================= */
+function addReceita() {
+  const data = document.getElementById('recData').value;
+  const desc = document.getElementById('recDesc').value.trim();
+  const cat = document.getElementById('recCat').value;
+  const valor = parseFloat(document.getElementById('recValor').value);
+
+  if (!data || !desc || isNaN(valor) || valor <= 0) return alert('Preencha todos os campos corretamente!');
+
+  state.receitas.push({ id: Date.now(), data, desc, cat, valor });
+  salvar();
+  document.getElementById('recData').value = '';
+  document.getElementById('recDesc').value = '';
+  document.getElementById('recValor').value = '';
+  render();
+}
+
+function delReceita(id) {
+  if (!confirm('Excluir esta receita?')) return;
+  state.receitas = state.receitas.filter(r => r.id !== id);
+  salvar(); render();
+}
+
+/* =========================================================
+   DESPESAS
+========================================================= */
+function addDespesa() {
+  const data = document.getElementById('desData').value;
+  const desc = document.getElementById('desDesc').value.trim();
+  const cat = document.getElementById('desCat').value;
+  const valor = parseFloat(document.getElementById('desValor').value);
+
+  if (!data || !desc || isNaN(valor) || valor <= 0) return alert('Preencha todos os campos corretamente!');
+
+  state.despesas.push({ id: Date.now(), data, desc, cat, valor });
+  salvar();
+  document.getElementById('desData').value = '';
+  document.getElementById('desDesc').value = '';
+  document.getElementById('desValor').value = '';
+  render();
+}
+
+function delDespesa(id) {
+  if (!confirm('Excluir esta despesa?')) return;
+  state.despesas = state.despesas.filter(d => d.id !== id);
+  salvar(); render();
+}
+
+/* =========================================================
+   METAS
+========================================================= */
+function addMeta() {
+  const nome = document.getElementById('metaNome').value.trim();
+  const alvo = parseFloat(document.getElementById('metaAlvo').value);
+  const atual = parseFloat(document.getElementById('metaAtual').value) || 0;
+  const prazo = document.getElementById('metaPrazo').value;
+
+  if (!nome || isNaN(alvo) || alvo <= 0) return alert('Preencha nome e valor alvo!');
+
+  state.metas.push({ id: Date.now(), nome, alvo, atual, prazo });
+  salvar();
+  document.getElementById('metaNome').value = '';
+  document.getElementById('metaAlvo').value = '';
+  document.getElementById('metaAtual').value = '';
+  document.getElementById('metaPrazo').value = '';
+  render();
+}
+
+function delMeta(id) {
+  if (!confirm('Excluir esta meta?')) return;
+  state.metas = state.metas.filter(m => m.id !== id);
+  salvar(); render();
+}
+
+function addValorMeta(id) {
+  const input = document.getElementById(`input-meta-${id}`);
+  const valor = parseFloat(input.value);
+  if (isNaN(valor) || valor <= 0) return alert('Digite um valor válido maior que zero!');
+
+  const meta = state.metas.find(m => m.id === id);
+  if (!meta) return;
+
+  const antes = meta.atual;
+  meta.atual += valor;
+
+  if (antes < meta.alvo && meta.atual >= meta.alvo) {
+    setTimeout(() => alert(`🎉 Parabéns! Você atingiu a meta "${meta.nome}"!`), 100);
+  }
+
+  salvar(); render();
+}
+
+function retirarValorMeta(id) {
+  const input = document.getElementById(`input-meta-${id}`);
+  const valor = parseFloat(input.value);
+  if (isNaN(valor) || valor <= 0) return alert('Digite um valor válido maior que zero!');
+
+  const meta = state.metas.find(m => m.id === id);
+  if (!meta) return;
+
+  if (valor > meta.atual) {
+    alert(`Você só tem ${fmt(meta.atual)} guardado nesta meta.`);
+    return;
+  }
+
+  meta.atual -= valor;
+  salvar(); render();
+}
+
+/* =========================================================
+   INVESTIMENTOS
+========================================================= */
+function addInvestimento() {
+  const nome = document.getElementById('invNome').value.trim();
+  const tipo = document.getElementById('invTipo').value;
+  const investido = parseFloat(document.getElementById('invInvestido').value);
+  const atual = parseFloat(document.getElementById('invAtual').value);
+
+  if (!nome || isNaN(investido) || isNaN(atual) || investido <= 0) return alert('Preencha todos os campos!');
+
+  state.investimentos.push({ id: Date.now(), nome, tipo, investido, atual });
+  salvar();
+  document.getElementById('invNome').value = '';
+  document.getElementById('invInvestido').value = '';
+  document.getElementById('invAtual').value = '';
+  render();
+}
+
+function delInvestimento(id) {
+  if (!confirm('Excluir este investimento?')) return;
+  state.investimentos = state.investimentos.filter(i => i.id !== id);
+  salvar(); render();
+}
+
+/* =========================================================
+   RENDERIZAÇÃO
+========================================================= */
+function render() {
+  renderReceitas();
+  renderDespesas();
+  renderMetas();
+  renderInvestimentos();
+  renderDashboard();
+}
+
+function renderReceitas() {
+  const tb = document.getElementById('tabelaReceitas');
+  if (!state.receitas.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="vazio">Nenhuma receita cadastrada</td></tr>';
+    return;
+  }
+  tb.innerHTML = state.receitas
+    .slice().sort((a,b) => new Date(b.data) - new Date(a.data))
+    .map(r => `
+      <tr>
+        <td>${dataBR(r.data)}</td>
+        <td>${r.desc}</td>
+        <td><span class="cat">${r.cat}</span></td>
+        <td class="valor pos">${fmt(r.valor)}</td>
+        <td><button class="btn excluir" onclick="delReceita(${r.id})">✕</button></td>
+      </tr>`).join('');
+}
+
+function renderDespesas() {
+  const tb = document.getElementById('tabelaDespesas');
+  if (!state.despesas.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="vazio">Nenhuma despesa cadastrada</td></tr>';
+    return;
+  }
+  tb.innerHTML = state.despesas
+    .slice().sort((a,b) => new Date(b.data) - new Date(a.data))
+    .map(d => `
+      <tr>
+        <td>${dataBR(d.data)}</td>
+        <td>${d.desc}</td>
+        <td><span class="cat">${d.cat}</span></td>
+        <td class="valor neg">${fmt(d.valor)}</td>
+        <td><button class="btn excluir" onclick="delDespesa(${d.id})">✕</button></td>
+      </tr>`).join('');
+}
+
+function renderMetas() {
+  const box = document.getElementById('listaMetas');
+  if (!state.metas.length) {
+    box.innerHTML = '<p class="vazio">Nenhuma meta cadastrada</p>';
+    return;
+  }
+  box.innerHTML = state.metas.map(m => {
+    const pct = Math.min(100, (m.atual / m.alvo) * 100);
+    const concluida = m.atual >= m.alvo;
+    const falta = Math.max(0, m.alvo - m.atual);
+    return `
+      <div class="meta-item">
+        <div class="info">
+          <span><strong>${m.nome}</strong> ${m.prazo ? '— prazo: ' + dataBR(m.prazo) : ''} ${concluida ? '✅' : ''}</span>
+          <span>${fmt(m.atual)} / ${fmt(m.alvo)} (${pct.toFixed(1)}%)</span>
+        </div>
+        <div class="progresso">
+          <div style="width:${pct}%">${pct >= 15 ? pct.toFixed(0) + '%' : ''}</div>
+        </div>
+        <div style="margin-top:6px; font-size:0.8rem; color:#94a3b8;">
+          ${concluida ? '🎉 Meta concluída!' : 'Faltam: ' + fmt(falta)}
+        </div>
+        <div class="meta-acoes">
+          <input type="number" step="0.01" min="0.01" placeholder="Valor (R$)" id="input-meta-${m.id}">
+          <button class="btn" onclick="addValorMeta(${m.id})">➕ Adicionar valor</button>
+          <button class="btn retirar" onclick="retirarValorMeta(${m.id})">➖ Retirar</button>
+          <button class="btn excluir" onclick="delMeta(${m.id})">✕ Excluir</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderInvestimentos() {
+  const tb = document.getElementById('tabelaInvestimentos');
+  const total = state.investimentos.reduce((s,i) => s + i.atual, 0);
+
+  if (!state.investimentos.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="vazio">Nenhum investimento cadastrado</td></tr>';
+    document.getElementById('totalInv').textContent = 'R$ 0,00';
+    document.getElementById('totalAtual').textContent = 'R$ 0,00';
+    document.getElementById('rentTotal').textContent = '0%';
+    return;
+  }
+
+  tb.innerHTML = state.investimentos.map(i => {
+    const rent = ((i.atual - i.investido) / i.investido) * 100;
+    const pct = (i.atual / total) * 100;
+    return `
+      <tr>
+        <td>${i.nome}</td>
+        <td><span class="cat">${i.tipo}</span></td>
+        <td>${fmt(i.investido)}</td>
+        <td>${fmt(i.atual)}</td>
+        <td class="valor ${rent >= 0 ? 'pos' : 'neg'}">${rent.toFixed(2)}%</td>
+        <td>${pct.toFixed(1)}%</td>
+        <td><button class="btn excluir" onclick="delInvestimento(${i.id})">✕</button></td>
+      </tr>`;
+  }).join('');
+
+  const totalInv = state.investimentos.reduce((s,i) => s + i.investido, 0);
+  const totalAtual = state.investimentos.reduce((s,i) => s + i.atual, 0);
+  const rent = totalInv ? ((totalAtual - totalInv) / totalInv) * 100 : 0;
+
+  document.getElementById('totalInv').textContent = fmt(totalInv);
+  document.getElementById('totalAtual').textContent = fmt(totalAtual);
+  document.getElementById('rentTotal').textContent = rent.toFixed(2) + '%';
+}
+
+/* =========================================================
+   DASHBOARD + GRÁFICOS
+========================================================= */
+let chartPizza, chartBarras;
+
+function renderDashboard() {
+  const mes = mesAtual();
+  const recMes = state.receitas.filter(r => r.data.startsWith(mes)).reduce((s,r) => s + r.valor, 0);
+  const desMes = state.despesas.filter(d => d.data.startsWith(mes)).reduce((s,d) => s + d.valor, 0);
+  const saldo = recMes - desMes;
+  const poupanca = recMes ? (saldo / recMes) * 100 : 0;
+
+  document.getElementById('totalReceitas').textContent = fmt(recMes);
+  document.getElementById('totalDespesas').textContent = fmt(desMes);
+  document.getElementById('saldoMes').textContent = fmt(saldo);
+  document.getElementById('taxaPoupanca').textContent = poupanca.toFixed(1) + '%';
+  document.getElementById('saldoHeader').textContent = fmt(saldo);
+  document.getElementById('saldoHeader').style.color = saldo >= 0 ? '#4ade80' : '#f87171';
+
+  const desCat = {};
+  state.despesas.filter(d => d.data.startsWith(mes)).forEach(d => {
+    desCat[d.cat] = (desCat[d.cat] || 0) + d.valor;
+  });
+  const cores = ['#38bdf8','#4ade80','#facc15','#f87171','#a78bfa','#fb923c','#34d399','#f472b6','#60a5fa','#fbbf24'];
+
+  if (chartPizza) chartPizza.destroy();
+  chartPizza = new Chart(document.getElementById('graficoPizza'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(desCat).length ? Object.keys(desCat) : ['Sem dados'],
+      datasets: [{
+        data: Object.values(desCat).length ? Object.values(desCat) : [1],
+        backgroundColor: cores,
+        borderWidth: 0
+      }]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#e2e8f0' } } },
+      maintainAspectRatio: true
+    }
+  });
+
+  const meses = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    meses.push(d.toISOString().slice(0, 7));
+  }
+  const recM = meses.map(m => state.receitas.filter(r => r.data.startsWith(m)).reduce((s,r) => s + r.valor, 0));
+  const desM = meses.map(m => state.despesas.filter(d => d.data.startsWith(m)).reduce((s,d) => s + d.valor, 0));
+  const labels = meses.map(m => {
+    const [a, mm] = m.split('-');
+    return new Date(a, mm - 1).toLocaleDateString('pt-BR', { month: 'short' });
+  });
+
+  if (chartBarras) chartBarras.destroy();
+  chartBarras = new Chart(document.getElementById('graficoBarras'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Receitas', data: recM, backgroundColor: '#4ade80' },
+        { label: 'Despesas', data: desM, backgroundColor: '#f87171' }
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#e2e8f0' } } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+        y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+      }
+    }
+  });
+}
+
+/* =========================================================
+   INICIALIZAÇÃO
+========================================================= */
+const hoje = new Date().toISOString().slice(0, 10);
+document.getElementById('recData').value = hoje;
+document.getElementById('desData').value = hoje;
+
+render();
+</script>
+</body>
+</html>
