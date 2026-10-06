@@ -24,6 +24,16 @@ jobs:
       - name: Sync Capacitor iOS
         run: npx cap sync ios
 
+      - name: Install CocoaPods
+        run: |
+          cd ios/App
+          pod install --repo-update
+
+      - name: Verify workspace exists
+        run: |
+          echo "Conteúdo de ios/App:"
+          ls -la ios/App/
+
       - name: Build iOS (unsigned)
         run: |
           cd ios/App
